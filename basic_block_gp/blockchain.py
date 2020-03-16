@@ -54,7 +54,7 @@ class Blockchain(object):
     def last_block(self):
         return self.chain[-1]
 
-    def proof_of_work(self, last_proof):
+    def proof_of_work(self, block):
         """
         Simple Proof of Work Algorithm:
          - Find a number p' such that hash(pp') contains leading 4 zeroes, where p is the previous p'
@@ -62,9 +62,10 @@ class Blockchain(object):
         :param last_proof: <int>
         :return: <int>
         """
+        block_string = json.dumps(block, sort_keys=True)
 
         proof = 0
-        while self.valid_proof(last_proof, proof) is False:
+        while self.valid_proof(block_string, proof) is False:
             proof += 1
 
         return proof
@@ -81,7 +82,7 @@ class Blockchain(object):
         correct number of leading zeroes.
         :return: True if the resulting hash is a valid proof, False otherwise
         """
-        guess = f'{last_proof}{proof}'.encode()
+        guess = f'{block_string}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
 
@@ -99,11 +100,14 @@ blockchain = Blockchain()
 @app.route('/mine', methods=['GET'])
 def mine():
     # Run the proof of work algorithm to get the next proof
+    proof = blockchain.proof_of_work(blockchain.last_block)
 
     # Forge the new Block by adding it to the chain with the proof
+    previous_hash = blockchain.hash(blockchain.last_block)
+    block = blockchain.new_block(proof, previous_hash)
 
     response = {
-        # TODO: Send a JSON response with the new block
+        'new_block': block
     }
 
     return jsonify(response), 200
@@ -113,7 +117,8 @@ def mine():
 def full_chain():
     response = {
 
-        # TODO: Return the chain and its current length
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain)
     }
     return jsonify(response), 200
 
